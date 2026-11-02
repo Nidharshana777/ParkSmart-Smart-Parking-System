@@ -9,6 +9,8 @@ const apiRoutes = require('./routes/api');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const clientDistPath = path.join(__dirname, 'client', 'dist');
+
 app.use(cors({
   origin: process.env.CLIENT_URL || true
 }));
@@ -16,12 +18,26 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => {
-  res.json({ message: 'Smart Parking System API is running' });
-});
-
+// API routes
 app.use('/api', apiRoutes);
 
+// Serve React frontend
+app.use(express.static(clientDistPath));
+
+// React Router fallback
+app.use((req, res, next) => {
+  if (
+    req.method !== 'GET' ||
+    req.path === '/api' ||
+    req.path.startsWith('/api/')
+  ) {
+    return next();
+  }
+
+  res.sendFile(path.join(clientDistPath, 'index.html'));
+});
+
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ message: 'Internal server error' });
@@ -37,7 +53,7 @@ async function startServer() {
     console.log('MongoDB connected successfully');
 
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Smart Parking API running on port ${PORT}`);
+      console.log(`Smart Parking System running on port ${PORT}`);
     });
   } catch (error) {
     console.error('Server startup failed:', error.message);
